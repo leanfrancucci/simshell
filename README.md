@@ -1,2 +1,2 @@
-# GitHub template repository
-Use it to create new repositories
+# Simple shell for tiny embedded sytems
+---
