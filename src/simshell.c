@@ -32,17 +32,11 @@
  */
 
 /**
- *  \file       file_header.c
- *  \brief      Brief description and purpose of this file.
- *
- *  Long description and purpose of this file.
+ *  \file   simshell.c
+ *  \brief  
  */
 
 /* -------------------------- Development history -------------------------- */
-/*
- *  2016.12.15  LeFr  v2.4.05  ---
- */
-
 /* -------------------------------- Authors -------------------------------- */
 /*
  *  LeFr  Leandro Francucci  lf@vortexmakes.com
@@ -50,14 +44,9 @@
 
 /* --------------------------------- Notes --------------------------------- */
 /* ----------------------------- Include files ----------------------------- */
-/* ----------------------------- Local macros ------------------------------ */
-/* ------------------------------- Constants ------------------------------- */
-/* ---------------------------- Local data types --------------------------- */
-/* ---------------------------- Global variables --------------------------- */
-/* ---------------------------- Local variables ---------------------------- */
-/* ----------------------- Local function prototypes ----------------------- */
-/* ---------------------------- Local functions ---------------------------- */
-/* ---------------------------- Global functions --------------------------- */
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
 #include "conser.h"
 #include "command.h"
 #include "mytypes.h"
@@ -65,125 +54,91 @@
 #include "console.h"
 #include "contick.h"
 
-#include <stdlib.h>
-#include <string.h>
-
-/*
- *      Define the size of console buffer.
- */
-
+/* ----------------------------- Local macros ------------------------------ */
+/* ------------------------------- Constants ------------------------------- */
+/** Define the size of console buffer */
 #define CBSIZE                  32
 
-/*
- *      Length of prompt string
- */
-
+/** Length of prompt string */
 #define PROMPT_LEN              sizeof(prompt)
 
-/*
- *      Prompt string
+/* ---------------------------- Local data types --------------------------- */
+/**
+ * Return codes for 'process_in_char' function.
+ * They are negative numbers.
  */
-
-static const char prompt[] = ">>";
-
-/*
- *	    Used to expand TABs
- */
-
-static const char tab_seq[] = "        ";
-
-/*
- *		Erase sequence
- */
-
-static const char erase_seq[] = "\b \b";
-
-/*
- *      Used to store the command's arguments
- */
-
-static char *argv[MAXARGS + 1];
-
-/*
- *      Used to maintain the input char from attached
- *      serial channel
- */
-
-static char console_buffer[CBSIZE];
-
-/*
- *      Console buffer index
- */
-
-static MUInt n;
-
-/*
- *      Output column counter
- */
-
-static MUInt col;
-
-/*
- *      Pointer to console buffer
- */
-
-static char *p;
-
-/*
- *      If CONFIG_CMD_TOUT is defined and command timer elapsed,
- *		command shell is aborted.
- */
-
-static MUInt abort_shell;
-
-/*
- *      Return codes for 'process_in_char' function.
- *      They are negative numbers.
- */
-
 enum
 {
     CTRL_C = 1, PARSING
 };
 
-/*
- * print_prompt:
- *
- *      Print prompt string on console and initialize
- *      for next command entry.
- */
+/* ---------------------------- Global variables --------------------------- */
+/* ---------------------------- Local variables ---------------------------- */
+/** Prompt string */
+static const char prompt[] = ">>";
 
-static
-void
+/**	Used to expand TABs */
+static const char tab_seq[] = "        ";
+
+/** Erase sequence */
+static const char erase_seq[] = "\b \b";
+
+/** Used to store the command's arguments */
+static char *argv[MAXARGS + 1];
+
+/**
+ * Used to maintain the input char from attached serial channel
+ */
+static char console_buffer[CBSIZE];
+
+/** Console buffer index */
+static unsigned int n;
+
+/** Output column counter */
+static unsigned int col;
+
+/** Pointer to console buffer */
+static char *p;
+
+/**
+ * If CONFIG_CMD_TOUT is defined and command timer elapsed, command shell is 
+ * aborted.
+ */
+static unsigned int abort_shell;
+
+/* ----------------------- Local function prototypes ----------------------- */
+/* ---------------------------- Local functions ---------------------------- */
+/**
+ *  \brief
+ *  Print prompt string on console and initialize for next command entry.
+ */
+static void
 print_prompt(void)
 {
     n = 0;
     p = console_buffer;
     if (prompt != NULL)
     {
-        conser_puts(prompt);
+        shellser_puts(prompt);
         col = PROMPT_LEN;
         return;
     }
     col = 0;
 }
 
-/*
- * delete_char:
- *
- *      Delete one character of console. Check '\t' character.
+/**
+ *  \brief
+ *  Delete one character of console. Check '\t' character.
  */
-
 #if DELETE_CHAR
-static
-char *
-delete_char(char *buffer, char *p, MUInt *colp, MUInt *np)
+static char *
+delete_char(char *buffer, char *p, unsigned int *colp, unsigned int *np)
 {
     char *s;
 
     if (*np == 0)
     {
-        conser_putc('\a');
+        shellser_putc('\a');
         return p;
     }
 
@@ -191,24 +146,24 @@ delete_char(char *buffer, char *p, MUInt *colp, MUInt *np)
     {
         while (*colp > PROMPT_LEN) /* delete whole line on console */
         {
-            conser_puts(erase_seq);
+            shellser_puts(erase_seq);
             --(*colp);
         }
         for (s = buffer; s < p; ++s) /* retype whole line on console */
             if (*s == '\t')
             {
-                conser_puts(tab_seq + ((*colp) & 07));
+                shellser_puts(tab_seq + ((*colp) & 07));
                 *colp += 8 - ((*colp) & 07);
             }
             else
             {
                 ++(*colp);
-                conser_putc(*s);
+                shellser_putc(*s);
             }
     }
     else
     {
-        conser_puts(erase_seq);
+        shellser_puts(erase_seq);
         --(*colp);
     }
     --(*np);
@@ -216,21 +171,18 @@ delete_char(char *buffer, char *p, MUInt *colp, MUInt *np)
 }
 #endif
 
-/*
- * process_in_char:
+/**
+ *  \brief
+ *  Every received character from attached serial channel is parsed on-line.
  *
- *      Every received character from attached
- *      serial channel is parsed on-line.
+ *  \param[in]  c input character
  *
- *      Returns:
- *
- *          -CTRL_C		- received ^C
- *          -PARSING	- continue
- *          >= 0		- received '\r' or '\n'
+ *  \return
+ *  -CTRL_C    received ^C
+ *  -PARSING   continue
+ *  >= 0       received '\r' or '\n'
  */
-
-static
-MInt
+static int
 process_in_char(char c)
 {
     switch (c)
@@ -238,7 +190,7 @@ process_in_char(char c)
         case '\r':                                  /* Enter */
         case '\n':
             *p = '\0';
-            conser_puts("\r\n");
+            shellser_puts("\r\n");
             return p - console_buffer;
         case 0x03:                                  /* ^C - abort */
             return -CTRL_C;
@@ -246,7 +198,7 @@ process_in_char(char c)
 #if DELETE_CHAR
             while (col > PROMPT_LEN)
             {
-                conser_puts(erase_seq);
+                shellser_puts(erase_seq);
                 --col;
             }
             p = console_buffer;
@@ -272,49 +224,52 @@ process_in_char(char c)
             {
                 if (c == '\t')                      /* Expand TABs */
                 {
-                    conser_puts(tab_seq + (col & 7));
+                    shellser_puts(tab_seq + (col & 7));
                     col += 8 - (col & 7);
                 }
                 else                                /* Echo input	*/
                 {
                     ++col;
-                    conser_putc(c);
+                    shellser_putc(c);
                 }
                 *p++ = c;
                 ++n;
             }
             else                                    /* Buffer full */
             {
-                conser_putc('\a');
+                shellser_putc('\a');
             }
             return -PARSING;
     }
 }
 
-/*
- * parse_line:
+/**
+ *  \brief
+ *  Parse the received line. 
+ *  
+ *  Store and prepare all args into argv parameter. 
+ *  Then return the actual number of args. 
+ *  Skip any white space (' ' or '\t'). The character '\0' is the end of line.
  *
- *      Parse the received line. Store and prepare all args
- *      into argv parameter. Then return the actual number of args.
- *      Skip any white space (' ' or '\t'). The character '\0' is
- *      the end of line.
+ *  \param[in]      line {parameter description}
+ *  \param[in]      argv {parameter description}
+ *
+ *  \return
  */
-
-static
-MInt
+static int
 parse_line(char *line, char *argv[])
 {
-    MUInt nargs = 0;
+    unsigned int nargs = 0;
 
     while (nargs < MAXARGS)
     {
         /* Skip any white space */
-
         while (*line == ' ' || *line == '\t')
+        {
             ++line;
+        }
 
         /* End of line, no more args */
-
         if (*line == '\0')
         {
             argv[nargs] = NULL;
@@ -322,16 +277,15 @@ parse_line(char *line, char *argv[])
         }
 
         /* Begin of argument string	*/
-
         argv[nargs++] = line;
 
         /* Find end of string */
-
         while (*line && *line != ' ' && *line != '\t')
+        {
             ++line;
+        }
 
         /* End of line, no more args */
-
         if (*line == '\0')
         {
             argv[nargs] = NULL;
@@ -339,41 +293,34 @@ parse_line(char *line, char *argv[])
         }
 
         /* Terminate current arg */
-
         *line++ = '\0';
     }
 #ifdef PRINT_FORMATS
     myprintf(0, "** Too many args (max. %d) **\n", MAXARGS);
 #else
-    conser_puts("** Too many args **\n");
+    shellser_puts("** Too many args **\n");
 #endif
     return nargs;
 }
 
-/*
- * run_command:
+/**
+ *  \brief
+ *  Get and find the actual command. If found it, then get all arguments 
+ *  and pass it to properly callback function.
  *
- *      Get and find the actual command. If found it, then
- *		get all arguments and pass it to properly callback
- *		function.
- *
- *      Returns:
- *			0,1	- command executed.
- *			-1  - not executed ( unrecognized or too many args )
- *          If cmd is NULL or "" or longer than CBSIZE-1 it is
- *          considered unrecognized.
+ *  \return
+ *	0,1	- command executed.
+ *	-1  - not executed (unrecognized or too many args)
+ *  If cmd is NULL or "" or longer than CBSIZE-1 it is considered unrecognized
  */
-
-static
-MInt
+static int
 run_command(char *cmd)
 {
     const CMD_TABLE *cmdtp;
     char *str = cmd;
-    MUInt argc;
+    unsigned int argc;
 
     /* Empty command */
-
     if (!cmd || !*cmd)
     {
         return -1;
@@ -381,28 +328,25 @@ run_command(char *cmd)
 
     if (strlen(cmd) >= CBSIZE)
     {
-        conser_puts("## Command too long!\n");
+        shellser_puts("## Command too long!\n");
         return -1;
     }
 
     /* Extract arguments */
-
     argc = parse_line(str, argv);
 
     /* Look up command in command table */
-
     if ((cmdtp = find_cmd(argv[0])) == NULL)
     {
 #ifdef PRINT_FORMATS
         myprintf(0, "Unknown command '%s' - try 'help'\n", argv[0]);
 #else
-        conser_puts("Unknown command - try 'help'\n");
+        shellser_puts("Unknown command - try 'help'\n");
 #endif
         return -1;  /* Give up after bad command */
     }
 
     /* Found - Check max args */
-
     if (argc > cmdtp->maxargs)
     {
 #ifdef PRINT_FORMATS
@@ -412,7 +356,6 @@ run_command(char *cmd)
     }
 
     /* OK - Call function to do the command */
-
     if ((cmdtp->cmd)(cmdtp, argc, argv) != 0)
     {
 #ifdef PRINT_FORMATS
@@ -421,32 +364,25 @@ run_command(char *cmd)
         return -1;
     }
 
-    /* Print prompt */
-
     print_prompt();
-
     return 0;
 }
 
-/*
- * do_console:
+/**
+ *  \brief
+ *  Check if key already pressed and and send it to command shell process
  *
- *      Check if key already pressed and
- *      and send it to command shell process.
- *
- *      Returns:
- *
- *          0 - successfully
- *			1 - abort command shell
+ *  \return
+ *  0 - successfully
+ *	1 - abort command shell
  */
 
-static
-MUInt
+static unsigned int
 do_console(void)
 {
-    MInt r;
+    int r;
 
-    if (((r = process_in_char(conser_getc())) >= 0) &&
+    if (((r = process_in_char(shellser_getc())) >= 0) &&
         (run_command(console_buffer) < 0))
     {
         print_prompt();
@@ -455,19 +391,19 @@ do_console(void)
     return r == -CTRL_C;
 }
 
-/*
- * command_shell:
+/* ---------------------------- Global functions --------------------------- */
+/**
+ *  \brief
+ *  Entry point to use the command shell. Each received character from 
+ *  attached serial channel is parsed on-line.
  *
- *      Entry point to use the command shell. Each received
- *      character from attached serial channel is parsed on-line.
- *      If CONFIG_CMD_TOUT is defined and command timer elapsed,
- *		returns timeout and command shell is aborted.
+ *  If CONFIG_CMD_TOUT is defined and command timer elapsed, returns timeout 
+ *  and command shell is aborted.
  */
-
-void
-command_shell(void)
+int 
+simshell_process(int c)
 {
-    if (conser_tstc())
+    if (shellser_tstc())
     {
 #if CONFIG_CMD_TOUT
         if (abort_shell && is_cmd_timeout())
@@ -487,33 +423,15 @@ command_shell(void)
     }
 }
 
-/*
- * init_command_shell:
- *
- *      It initialize this module.
+/**
+ *  \brief
+ *  It initializes this module.
  */
-
-void
-init_command_shell(void)
+void 
+simshell_init(void)
 {
-    conser_init();
     abort_shell = 1;
-    set_cmd_timeout(CONFIG_CMD_TIME);
     print_prompt();
 }
 
-#define forever         for (;;)
-#ifdef __CONSOLE_TST__
-
-void
-main(void)
-{
-    init_command_shell();
-
-    forever
-    {
-        command_shell();
-    }
-}
-#endif
 /* ------------------------------ End of file ------------------------------ */

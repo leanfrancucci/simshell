@@ -32,17 +32,11 @@
  */
 
 /**
- *  \file       file_header.h
- *  \brief      Brief description and purpose of this file.
- *
- *  Long description and purpose of this file.
+ *  \file   simshell.h
+ *  \brief      
  */
 
 /* -------------------------- Development history -------------------------- */
-/*
- *  2016.12.15  LeFr  v2.4.05  ---
- */
-
 /* -------------------------------- Authors -------------------------------- */
 /*
  *  LeFr  Leandro Francucci  lf@vortexmakes.com
@@ -50,38 +44,46 @@
 
 /* --------------------------------- Notes --------------------------------- */
 /* --------------------------------- Module -------------------------------- */
+#ifndef __SIMSHELL_H__
+#define __SIMSHELL_H__
+
 /* ----------------------------- Include files ----------------------------- */
 /* ---------------------- External C language linkage ---------------------- */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* --------------------------------- Macros -------------------------------- */
 /* -------------------------------- Constants ------------------------------ */
-/* ------------------------------- Data types ------------------------------ */
-/* -------------------------- External variables --------------------------- */
-/* -------------------------- Function prototypes -------------------------- */
-/* -------------------- External C language linkage end -------------------- */
-/* ------------------------------ Module end ------------------------------- */
-#include "mytypes.h"
-
 #define PRINT_FORMATS           1
 #define DELETE_CHAR             1
 #define CONFIG_CMD_TOUT         0
 #define CONFIG_CMD_TOUT_MIN     1
 #define CONFIG_CMD_TIME         3 /* seconds */
 
-/*
- * init_command_shell:
- *
- *      Initialize this module.
+/* ------------------------------- Data types ------------------------------ */
+/* -------------------------- External variables --------------------------- */
+/* -------------------------- Function prototypes -------------------------- */
+/**
+ *  \brief
+ *  Initialize this module.
  */
+void simshell_init(void);
 
-void init_command_shell(void);
-
-/*
- * command_shell:
+/**
+ *  \brief
+ *  Entry point to use the command shell.
  *
- *      Entry point to use the command shell.
- *      Every received character from attached
- *      serial channel is parsed on-line.
+ *  Every received character from attached serial channel is parsed on-line.
  */
+int simshell_process(int c);
 
-void command_shell(void);
+/* -------------------- External C language linkage end -------------------- */
+#ifdef __cplusplus
+}
+#endif
+
+/* ------------------------------ Module end ------------------------------- */
+#endif
+
 /* ------------------------------ End of file ------------------------------ */

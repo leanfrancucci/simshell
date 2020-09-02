@@ -9,10 +9,10 @@
   :use_auxiliary_dependencies: TRUE
   :release_build: TRUE
   :build_root: build
-  :which_ceedling: ../../third-party/ceedling
+  :which_ceedling: 
   :test_file_prefix: test_
   :options_paths: 
-    - ../../tools/ceedling
+    - 
 
 :environment: []
 
@@ -20,7 +20,7 @@
   :executable: .out
 
 :release_build:
-  :output: frameconv
+  :output: simshell
 
 :paths:
   :test:
@@ -28,31 +28,8 @@
     - -:test/support
   :source:
     - src
-    - ../Crc32/src/Crc32_sw.c
-    - ../YFrame/src
-    - ../tpsens/cbox/cbox.c
   :include:
     - inc
-    - ../../third-party/rkh/source/portable/test
-    - ../../third-party/rkh/source/fwk/inc
-    - ../../third-party/rkh/source/sma/inc
-    - ../../third-party/rkh/source/sm/inc
-    - ../../third-party/rkh/source/queue/inc
-    - ../../third-party/rkh/source/tmr/inc
-    - ../../third-party/rkh/source/trc/inc
-    - ../../third-party/rkh/source/mempool/inc
-    - ../tpsens/cbox
-    - ../Collector/inc
-    - ../gps/inc
-    - ../BatChr
-    - ../GsmMgr
-    - ../epoch/inc
-    - ../Crc32/inc
-    - ../GStatus/inc
-    - ../YFrame/inc
-    - ../GsmMgr/inc
-    - ../gps/inc
-    - ../YCommand/inc
     - ../
   :support:
     - test/support

@@ -32,17 +32,11 @@
  */
 
 /**
- *  \file       file_header.h
- *  \brief      Brief description and purpose of this file.
- *
- *  Long description and purpose of this file.
+ *  \file   shellser.h
+ *  \brief
  */
 
 /* -------------------------- Development history -------------------------- */
-/*
- *  2016.12.15  LeFr  v2.4.05  ---
- */
-
 /* -------------------------------- Authors -------------------------------- */
 /*
  *  LeFr  Leandro Francucci  lf@vortexmakes.com
@@ -50,45 +44,47 @@
 
 /* --------------------------------- Notes --------------------------------- */
 /* --------------------------------- Module -------------------------------- */
+#ifndef __SHELLSER_H__
+#define __SHELLSER_H__
+
 /* ----------------------------- Include files ----------------------------- */
 /* ---------------------- External C language linkage ---------------------- */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* --------------------------------- Macros -------------------------------- */
 /* -------------------------------- Constants ------------------------------ */
 /* ------------------------------- Data types ------------------------------ */
 /* -------------------------- External variables --------------------------- */
 /* -------------------------- Function prototypes -------------------------- */
+void shellser_init(void);
+
+/**
+ *  \brief
+ *  Checks to see if a key is currently available
+ *
+ *  \return
+ *  0 - on success
+ *  1 - key is not available
+ */
+MUInt shellser_tstc(void);
+
+void shellser_putc(const char c);
+void shellser_puts(const char *s);
+
+/**
+ *  \brief
+ *  Blocking function that return one character from attached serial line
+ */
+MUInt shellser_getc(void);
+
 /* -------------------- External C language linkage end -------------------- */
-/* ------------------------------ Module end ------------------------------- */
-#ifndef __CONSER_H__
-#define __CONSER_H__
-
-#include "mytypes.h"
-
-void conser_init(void);
-
-/*
- * conser_tstc:
- *
- *      Checks to see if a key is currently available
- *
- *      Returns:
- *
- *          0 - on success
- *          1 - key is not available
- */
-
-MUInt conser_tstc(void);
-void conser_putc(const char c);
-void conser_puts(const char *s);
-
-/*
- * conser_getc:
- *
- *      Blocking function that return one character
- *      from attached serial line.
- */
-
-MUInt conser_getc(void);
-
+#ifdef __cplusplus
+}
 #endif
+
+/* ------------------------------ Module end ------------------------------- */
+#endif
+
 /* ------------------------------ End of file ------------------------------ */
